@@ -14,26 +14,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Demo Robot for Remake AI Appstore Integration
-Shows how to connect a Remake AI robot to the Remake AI Appstore
+Demo Robot for Remake AI Platform Integration
+Shows how to connect a Remake AI robot to the Remake AI Platform
 """
 import asyncio
 import signal
 import sys
 import rclpy
-from appstore_robot_client import AppstoreRobotClient
+from platform_robot_client import PlatformRobotClient
 
 # ============================================
-# CONFIGURATION - GET THESE FROM APPSTORE
+# CONFIGURATION - GET THESE FROM PLATFORM
 # ============================================
-# When you create a robot in the appstore, you get:
+# When you create a robot in the platform, you get:
 # 1. ROBOT_ID - UUID of your robot
 # 2. ROBOT_SECRET - Secret token (shown only once!)
 # ============================================
 
-ROBOT_ID = "YOUR_ROBOT_ID_FROM_APPSTORE"
-ROBOT_SECRET = "YOUR_ROBOT_SECRET_FROM_APPSTORE"
-APPSTORE_URL = "http://localhost:5000"  # Change to https://apps.remake.ai for production
+ROBOT_ID = "YOUR_ROBOT_ID_FROM_PLATFORM"
+ROBOT_SECRET = "YOUR_ROBOT_SECRET_FROM_PLATFORM"
+PLATFORM_URL = "http://localhost:5000"  # Change to https://apps.remake.ai for production
 
 # Robot specification configuration
 ROBOT_SPECIFICATION = {
@@ -98,15 +98,15 @@ async def spin(robot, should_exit_func):
 async def main():
     """Main function to run the robot controller"""
     print("=" * 60)
-    print("🤖 Remake AI Robot → Remake AI Appstore Connector")
+    print("🤖 Remake AI Robot → Remake AI Platform Connector")
     print("=" * 60)
     print()
     print("📋 Configuration:")
     print(f"   • Robot ID: {ROBOT_ID}")
-    print(f"   • Appstore URL: {APPSTORE_URL}")
+    print(f"   • Platform URL: {PLATFORM_URL}")
     print()
     print("🔄 This robot will:")
-    print("   • Authenticate with the Remake AI Appstore")
+    print("   • Authenticate with the Remake AI Platform")
     print("   • Send real-time sensor data (LiDAR, battery, wifi, pose)")
     print("   • Receive and execute app launch commands")
     print("   • Maintain heartbeat connection")
@@ -114,11 +114,11 @@ async def main():
     print()
 
     # Validate configuration
-    if ROBOT_ID == "YOUR_ROBOT_ID_FROM_APPSTORE" or ROBOT_SECRET == "YOUR_ROBOT_SECRET_FROM_APPSTORE":
+    if ROBOT_ID == "YOUR_ROBOT_ID_FROM_PLATFORM" or ROBOT_SECRET == "YOUR_ROBOT_SECRET_FROM_PLATFORM":
         print("❌ ERROR: Please configure ROBOT_ID and ROBOT_SECRET")
         print()
         print("📝 How to get your robot credentials:")
-        print("   1. Go to Remake AI Appstore: http://localhost:3000")
+        print("   1. Go to Remake AI Platform: http://localhost:3000")
         print("   2. Navigate to 'Robots' page")
         print("   3. Click 'Add Robot'")
         print("   4. Enter a name and click 'Create'")
@@ -134,12 +134,12 @@ async def main():
     should_exit = False
 
     try:
-        # Create appstore robot client
-        robot = AppstoreRobotClient(
+        # Create platform robot client
+        robot = PlatformRobotClient(
             robot_id=ROBOT_ID,
             robot_secret=ROBOT_SECRET,
             specification=ROBOT_SPECIFICATION,
-            appstore_url=APPSTORE_URL
+            platform_url=PLATFORM_URL
         )
 
         # Set up signal handlers for graceful shutdown
@@ -157,10 +157,10 @@ async def main():
         print("   Press Ctrl+C to stop")
         print()
 
-        # Run both ROS2 spinning and appstore connection concurrently
+        # Run both ROS2 spinning and platform connection concurrently
         await asyncio.gather(
             spin(robot, lambda: should_exit),
-            robot.connect_to_appstore()
+            robot.connect_to_platform()
         )
 
     except KeyboardInterrupt:
@@ -187,7 +187,7 @@ async def main():
 
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("🤖 Starting Remake AI Robot with Remake AI Appstore")
+    print("🤖 Starting Remake AI Robot with Remake AI Platform")
     print("="*60 + "\n")
 
     try:

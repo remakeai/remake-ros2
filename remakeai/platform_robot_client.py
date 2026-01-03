@@ -27,10 +27,10 @@ import hmac
 import hashlib
 from robot_client_ros2 import RobotClientROS2
 
-class AppstoreRobotClient(RobotClientROS2):
+class PlatformRobotClient(RobotClientROS2):
     """Robot client that connects to Remake.ai platform via Socket.IO"""
 
-    def __init__(self, robot_id, robot_secret, specification=None, appstore_url="http://localhost:5000"):
+    def __init__(self, robot_id, robot_secret, specification=None, platform_url="http://localhost:5000"):
         """
         Initialize platform Robot Client
 
@@ -38,14 +38,14 @@ class AppstoreRobotClient(RobotClientROS2):
             robot_id: Robot ID from platform UI (UUID)
             robot_secret: Secret token from platform UI (plain text, will be sent for bcrypt verification)
             specification: Robot specification dictionary
-            appstore_url: Platform backend URL (default: https://apps.remake.ai)
+            platform_url: Platform backend URL (default: https://apps.remake.ai)
         """
         # Initialize parent ROS2 client
         super().__init__(specification)
 
         self.robot_id = robot_id
         self.robot_secret = robot_secret
-        self.appstore_url = appstore_url
+        self.platform_url = platform_url
         self.authenticated = False
 
         # Create Socket.IO client
@@ -156,7 +156,7 @@ class AppstoreRobotClient(RobotClientROS2):
                 't3': time.time()
             }, namespace='/robot-control')
 
-            self.get_logger().debug("💓 Responded to ping_cmd from appstore")
+            self.get_logger().debug("💓 Responded to ping_cmd from platform")
 
         @self.sio.on('launch_app', namespace='/robot-control')
         async def on_launch_app(data):
@@ -234,14 +234,14 @@ class AppstoreRobotClient(RobotClientROS2):
             }
             await self.navigate_to_pose(command)
 
-    async def connect_to_appstore(self):
+    async def connect_to_platform(self):
         """Connect to the Remake.ai platform"""
         try:
-            self.get_logger().info(f"🔗 Connecting to Platform at {self.appstore_url}/robot-control")
+            self.get_logger().info(f"🔗 Connecting to Platform at {self.platform_url}/robot-control")
 
             # Connect to the /robot-control namespace
             await self.sio.connect(
-                self.appstore_url,
+                self.platform_url,
                 namespaces=['/robot-control'],
                 transports=['websocket', 'polling']
             )

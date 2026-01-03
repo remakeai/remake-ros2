@@ -1,7 +1,7 @@
-# Additional dependencies for Remake AI Appstore integration
-# Install these to enable robot-to-appstore connectivity
+# Additional dependencies for Remake AI Platform integration
+# Install these to enable robot-to-platform connectivity
 
-# Socket.IO client for real-time communication with appstore backend
+# Socket.IO client for real-time communication with platform backend
 python-socketio[asyncio_client]>=5.0.0
 
 # Note: The base remakeai requirements.txt should already include:

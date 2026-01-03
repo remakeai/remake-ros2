@@ -20,7 +20,7 @@ import httpx
 from typing import Optional, Dict, Any
 
 
-class AppstoreClient:
+class PlatformClient:
     """HTTP client for platform API"""
 
     def __init__(self, base_url: str, token: Optional[str] = None):

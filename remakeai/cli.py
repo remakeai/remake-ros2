@@ -14,31 +14,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Remake CLI - Command-line tool for pairing robots with Appstore
+Remake CLI - Command-line tool for pairing robots with Platform
 """
 import click
 
 from . import __version__
 from .cli_config import (
     load_config, get_auth_token, set_auth, clear_auth,
-    get_robots, add_robot, remove_robot, get_robot, get_appstore_url, set_appstore_url
+    get_robots, add_robot, remove_robot, get_robot, get_platform_url, set_platform_url
 )
-from .api import AppstoreClient
+from .api import PlatformClient
 from .websocket_client import connect_robot
 
 
 @click.group()
 @click.version_option(version=__version__, prog_name='remake')
 def cli():
-    """Remake CLI - Pair and connect robots to Appstore"""
+    """Remake CLI - Pair and connect robots to Platform"""
     pass
 
 
 @cli.command()
 @click.option('--email', help='Account email (optional, for reference)')
-@click.option('--url', help='Appstore URL (default: https://apps.remake.ai)')
+@click.option('--url', help='Platform URL (default: https://apps.remake.ai)')
 def login(email, url):
-    """Authenticate with Appstore using a CLI token"""
+    """Authenticate with Platform using a CLI token"""
     config = load_config()
 
     # Check if already logged in
@@ -50,10 +50,10 @@ def login(email, url):
             return
 
     # Show instructions
-    appstore_url = url or get_appstore_url()
+    platform_url = url or get_platform_url()
     click.echo("")
     click.echo("To get your CLI token:")
-    click.echo(f"  1. Go to {appstore_url}/tokens")
+    click.echo(f"  1. Go to {platform_url}/tokens")
     click.echo("  2. Click 'Create CLI Token'")
     click.echo("  3. Copy the token")
     click.echo("")
@@ -67,7 +67,7 @@ def login(email, url):
 
     # Validate token
     click.echo("Validating token...")
-    client = AppstoreClient(appstore_url)
+    client = PlatformClient(platform_url)
 
     try:
         result = client.authenticate(token)
@@ -83,12 +83,12 @@ def login(email, url):
                 expires_at=result.get('expires_at')
             )
 
-            # Save the appstore URL if provided
+            # Save the platform URL if provided
             if url:
-                set_appstore_url(appstore_url)
+                set_platform_url(platform_url)
 
             click.echo(f"Logged in as {user_email}")
-            click.echo(f"Appstore URL: {appstore_url}")
+            click.echo(f"Platform URL: {platform_url}")
             click.echo("Credentials saved to ~/.config/remakeai/config.yml")
         else:
             click.echo(f"Login failed: {result.get('error', 'Invalid token')}")
@@ -108,15 +108,15 @@ def logout():
 @click.option('--robot-id', help='Robot ID to pair (skip selection)')
 @click.option('--device-id', help='Unique device identifier')
 def pair(robot_id, device_id):
-    """Pair a robot from your Appstore account"""
+    """Pair a robot from your Platform account"""
     token = get_auth_token()
 
     if not token:
         click.echo("Not logged in. Run 'remake login' first.")
         return
 
-    appstore_url = get_appstore_url()
-    client = AppstoreClient(appstore_url, token)
+    platform_url = get_platform_url()
+    client = PlatformClient(platform_url, token)
 
     try:
         # If robot_id not provided, show interactive selection
@@ -135,7 +135,7 @@ def pair(robot_id, device_id):
                 click.echo("No unpaired robots found.")
                 click.echo("")
                 click.echo("Create a robot first:")
-                click.echo(f"  1. Go to {appstore_url}/robots")
+                click.echo(f"  1. Go to {platform_url}/robots")
                 click.echo("  2. Click 'Add Robot'")
                 click.echo("  3. Enter a name and save")
                 click.echo("  4. Run 'remake pair' again")
@@ -199,7 +199,7 @@ def pair(robot_id, device_id):
 @click.option('--device-id', help='Device ID to unpair')
 @click.option('--robot-id', help='Robot ID to unpair')
 def unpair(robot_name, device_id, robot_id):
-    """Remove a robot from Appstore"""
+    """Remove a robot from Platform"""
     token = get_auth_token()
 
     if not token:
@@ -222,8 +222,8 @@ def unpair(robot_name, device_id, robot_id):
                 click.echo(f"  - {r.get('name')} (device: {r.get('device_id')})")
             return
 
-    appstore_url = get_appstore_url()
-    client = AppstoreClient(appstore_url, token)
+    platform_url = get_platform_url()
+    client = PlatformClient(platform_url, token)
 
     try:
         result = client.unpair_robot(
@@ -247,7 +247,7 @@ def unpair(robot_name, device_id, robot_id):
 @click.option('--robot-name', help='Robot to connect')
 @click.option('--ros2', is_flag=True, help='Enable ROS2 bridge (publishes to /cmd_vel)')
 def connect(robot_name, ros2):
-    """Connect robot to Appstore (go online)"""
+    """Connect robot to Platform (go online)"""
     token = get_auth_token()
 
     if not token:
@@ -282,16 +282,16 @@ def connect(robot_name, ros2):
             click.echo("Invalid selection")
             return
 
-    click.echo(f"Connecting '{robot.get('name')}' to Appstore...")
+    click.echo(f"Connecting '{robot.get('name')}' to Platform...")
     if ros2:
         click.echo("[ROS2] Bridge enabled - will publish to /cmd_vel")
     click.echo("")
 
-    appstore_url = get_appstore_url()
+    platform_url = get_platform_url()
 
     # connect_robot is now synchronous (uses python-socketio)
     connect_robot(
-        appstore_url=appstore_url,
+        platform_url=platform_url,
         robot_id=robot.get('id'),
         robot_secret=robot.get('secret'),
         enable_ros2=ros2
@@ -332,8 +332,8 @@ def status():
 
     click.echo("")
 
-    # Appstore URL
-    click.echo(f"Appstore: {get_appstore_url()}")
+    # Platform URL
+    click.echo(f"Platform: {get_platform_url()}")
     click.echo("")
 
 

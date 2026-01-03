@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-WebSocket client for robot connection to Appstore
+WebSocket client for robot connection to Platform
 Uses python-socketio to match backend Socket.IO server
 Uses event names from ilia branch (Nov 28, 2025)
 """
@@ -47,13 +47,13 @@ class RobotConnection:
 
     def __init__(
         self,
-        appstore_url: str,
+        platform_url: str,
         robot_id: str,
         robot_secret: str,
         on_launch_app: Optional[Callable[[Dict[str, Any]], None]] = None,
         enable_ros2: bool = False
     ):
-        self.appstore_url = appstore_url.rstrip('/')
+        self.platform_url = platform_url.rstrip('/')
         self.robot_id = robot_id
         self.robot_secret = robot_secret
         self.on_launch_app = on_launch_app
@@ -87,7 +87,7 @@ class RobotConnection:
 
         @self.sio.on('connect', namespace='/robot-control')
         def on_connect():
-            print(f"Connected to {self.appstore_url}/robot-control")
+            print(f"Connected to {self.platform_url}/robot-control")
             self.connected = True
 
             # Send authentication immediately after connect
@@ -201,7 +201,7 @@ class RobotConnection:
         @self.sio.on('unpaired', namespace='/robot-control')
         def on_unpaired(data):
             """Handle unpaired notification from platform"""
-            print("Robot has been unpaired from Appstore")
+            print("Robot has been unpaired from Platform")
             self._running = False
             self.sio.disconnect()
 
@@ -254,7 +254,7 @@ class RobotConnection:
         try:
             # Connect to Socket.IO server with /robot-control namespace
             self.sio.connect(
-                self.appstore_url,
+                self.platform_url,
                 namespaces=['/robot-control'],
                 transports=['websocket']
             )
@@ -300,13 +300,13 @@ class RobotConnection:
 
 
 def connect_robot(
-    appstore_url: str,
+    platform_url: str,
     robot_id: str,
     robot_secret: str,
     enable_ros2: bool = False
 ) -> None:
     """
-    Connect robot to Appstore and stay online (blocking)
+    Connect robot to Platform and stay online (blocking)
 
     This is the main entry point for `remake connect`
 
@@ -314,7 +314,7 @@ def connect_robot(
         enable_ros2: If True, start ROS2 bridge to publish /cmd_vel
     """
     connection = RobotConnection(
-        appstore_url=appstore_url,
+        platform_url=platform_url,
         robot_id=robot_id,
         robot_secret=robot_secret,
         enable_ros2=enable_ros2

@@ -6,20 +6,20 @@ from .robot_client import RobotClient
 # ROS2-dependent imports (optional - only available in ROS2 environment)
 try:
     from .robot_client_ros2 import RobotClientROS2
-    from .appstore_robot_client import AppstoreRobotClient
+    from .platform_robot_client import PlatformRobotClient
 except ImportError:
     RobotClientROS2 = None
-    AppstoreRobotClient = None
+    PlatformRobotClient = None
 
 # CLI exports
-from .api import AppstoreClient
+from .api import PlatformClient
 from .websocket_client import RobotConnection
 
 __all__ = [
     'MessageCallbackMixin',
     'RobotClient',
     'RobotClientROS2',
-    'AppstoreRobotClient',
-    'AppstoreClient',
+    'PlatformRobotClient',
+    'PlatformClient',
     'RobotConnection',
 ]

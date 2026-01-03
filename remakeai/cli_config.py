@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
-DEFAULT_APPSTORE_URL = "https://apps.remake.ai"
+DEFAULT_PLATFORM_URL = "https://apps.remake.ai"
 CONFIG_DIR = Path.home() / ".config" / "remakeai"
 CONFIG_FILE = CONFIG_DIR / "config.yml"
 
@@ -38,7 +38,7 @@ def load_config() -> Dict[str, Any]:
     """Load config from file, return empty dict if not exists"""
     if not CONFIG_FILE.exists():
         return {
-            "appstore": {"url": DEFAULT_APPSTORE_URL},
+            "platform": {"url": DEFAULT_PLATFORM_URL},
             "auth": {},
             "robots": []
         }
@@ -47,8 +47,8 @@ def load_config() -> Dict[str, Any]:
         config = yaml.safe_load(f) or {}
 
     # Ensure required keys exist
-    if "appstore" not in config:
-        config["appstore"] = {"url": DEFAULT_APPSTORE_URL}
+    if "platform" not in config:
+        config["platform"] = {"url": DEFAULT_PLATFORM_URL}
     if "auth" not in config:
         config["auth"] = {}
     if "robots" not in config:
@@ -145,14 +145,14 @@ def get_robot(name: str = None, robot_id: str = None) -> Optional[Dict[str, Any]
     return None
 
 
-def get_appstore_url() -> str:
+def get_platform_url() -> str:
     """Get platform URL"""
     config = load_config()
-    return config.get("appstore", {}).get("url", DEFAULT_APPSTORE_URL)
+    return config.get("platform", {}).get("url", DEFAULT_PLATFORM_URL)
 
 
-def set_appstore_url(url: str) -> None:
+def set_platform_url(url: str) -> None:
     """Set platform URL"""
     config = load_config()
-    config["appstore"] = {"url": url}
+    config["platform"] = {"url": url}
     save_config(config)
