@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright 2023-2025 KAIA.AI
+# Copyright 2023-2025 REMAKE.AI
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import math
 from rclpy.node import Node
 from rcl_interfaces.srv import GetParameters, SetParameters
 from rcl_interfaces.msg import Parameter, ParameterType, ParameterValue
-from kaiaai import config
+from remakeai import config
 from ament_index_python.packages import get_package_share_path
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
@@ -37,7 +37,7 @@ from nav2_simple_commander.robot_navigator import TaskResult
 
 class NavUtils(Node):
   def __init__(self, global_frame_id='map', base_frame_id='base_footprint'):
-    super().__init__('kaiaai_utils')
+    super().__init__('remakeai_utils')
     self.base_frame_id = base_frame_id
     self.global_frame_id = global_frame_id
     self.tf_buffer = Buffer()
@@ -154,13 +154,13 @@ class NavUtils(Node):
     robot_model_str = config.get_var('robot.model')
 
     description_package_path = get_package_share_path(robot_model_str)
-    kaiaai_path_name = os.path.join(
+    remakeai_path_name = os.path.join(
       description_package_path,
       'config',
-      'kaiaai.yaml'
+      'remakeai.yaml'
     )
 
-    with open(kaiaai_path_name, 'r') as stream:
+    with open(remakeai_path_name, 'r') as stream:
       try:
         params = yaml.safe_load(stream)
       except yaml.YAMLError as exc:

@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Kaia CLI - Command-line tool for pairing robots with Appstore
+Remake CLI - Command-line tool for pairing robots with Appstore
 """
 import click
 
@@ -28,9 +28,9 @@ from .websocket_client import connect_robot
 
 
 @click.group()
-@click.version_option(version=__version__, prog_name='kaia')
+@click.version_option(version=__version__, prog_name='remake')
 def cli():
-    """Kaia CLI - Pair and connect robots to Appstore"""
+    """Remake CLI - Pair and connect robots to Appstore"""
     pass
 
 
@@ -89,7 +89,7 @@ def login(email, url):
 
             click.echo(f"Logged in as {user_email}")
             click.echo(f"Appstore URL: {appstore_url}")
-            click.echo("Credentials saved to ~/.config/kaiaai/config.yml")
+            click.echo("Credentials saved to ~/.config/remakeai/config.yml")
         else:
             click.echo(f"Login failed: {result.get('error', 'Invalid token')}")
 
@@ -112,7 +112,7 @@ def pair(robot_id, device_id):
     token = get_auth_token()
 
     if not token:
-        click.echo("Not logged in. Run 'kaia login' first.")
+        click.echo("Not logged in. Run 'remake login' first.")
         return
 
     appstore_url = get_appstore_url()
@@ -138,7 +138,7 @@ def pair(robot_id, device_id):
                 click.echo(f"  1. Go to {appstore_url}/robots")
                 click.echo("  2. Click 'Add Robot'")
                 click.echo("  3. Enter a name and save")
-                click.echo("  4. Run 'kaia pair' again")
+                click.echo("  4. Run 'remake pair' again")
                 return
 
             click.echo("")
@@ -186,7 +186,7 @@ def pair(robot_id, device_id):
             if robot.get('product_id'):
                 click.echo(f"  Product:   {robot.get('product_id')}")
             click.echo("")
-            click.echo("Run 'kaia connect' to go online")
+            click.echo("Run 'remake connect' to go online")
         else:
             click.echo(f"Pairing failed: {result.get('error')}")
 
@@ -203,7 +203,7 @@ def unpair(robot_name, device_id, robot_id):
     token = get_auth_token()
 
     if not token:
-        click.echo("Not logged in. Run 'kaia login' first.")
+        click.echo("Not logged in. Run 'remake login' first.")
         return
 
     # If no identifier provided, try to use default robot
@@ -251,13 +251,13 @@ def connect(robot_name, ros2):
     token = get_auth_token()
 
     if not token:
-        click.echo("Not logged in. Run 'kaia login' first.")
+        click.echo("Not logged in. Run 'remake login' first.")
         return
 
     robots = get_robots()
 
     if not robots:
-        click.echo("No robots paired. Run 'kaia pair' first.")
+        click.echo("No robots paired. Run 'remake pair' first.")
         return
 
     # Select robot
@@ -340,7 +340,7 @@ def status():
 @cli.command()
 def disconnect():
     """Placeholder for disconnect - connection ends with Ctrl+C"""
-    click.echo("To disconnect, press Ctrl+C while 'kaia connect' is running")
+    click.echo("To disconnect, press Ctrl+C while 'remake connect' is running")
 
 
 def main():

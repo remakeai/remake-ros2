@@ -4,7 +4,7 @@
 # Socket.IO client for real-time communication with appstore backend
 python-socketio[asyncio_client]>=5.0.0
 
-# Note: The base kaiaai requirements.txt should already include:
+# Note: The base remakeai requirements.txt should already include:
 # - websockets>=12.0
 # - Pillow>=10.1.0
 # - ROS2 dependencies (installed via rosdep)

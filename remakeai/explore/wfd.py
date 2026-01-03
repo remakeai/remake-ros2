@@ -4,7 +4,7 @@ import time
 from enum import Enum
 import numpy as np
 import math
-from kaiaai.util import OccupancyGrid2d
+from remakeai.util import OccupancyGrid2d
 
 
 class FrontierCache():

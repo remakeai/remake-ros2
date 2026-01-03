@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright 2024 KAIA.AI
+# Copyright 2024 REMAKE.AI
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 import yaml, os
 from pathlib import Path
 
-CONFIG_FILE_NAME = ".kaiaai.yaml"
+CONFIG_FILE_NAME = ".remakeai.yaml"
 
 
 def get_config_path():

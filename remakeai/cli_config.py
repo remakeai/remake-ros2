@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Config file management for Kaia CLI
+Config file management for Remake CLI
 Stores credentials securely with chmod 600
 """
 import os
@@ -25,7 +25,7 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 DEFAULT_APPSTORE_URL = "https://apps.remake.ai"
-CONFIG_DIR = Path.home() / ".config" / "kaiaai"
+CONFIG_DIR = Path.home() / ".config" / "remakeai"
 CONFIG_FILE = CONFIG_DIR / "config.yml"
 
 

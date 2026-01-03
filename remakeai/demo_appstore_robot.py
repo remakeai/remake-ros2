@@ -15,7 +15,7 @@
 # limitations under the License.
 """
 Demo Robot for Remake AI Appstore Integration
-Shows how to connect a kaiaai robot to the Remake AI Appstore
+Shows how to connect a Remake AI robot to the Remake AI Appstore
 """
 import asyncio
 import signal
@@ -38,8 +38,8 @@ APPSTORE_URL = "http://localhost:5000"  # Change to https://apps.remake.ai for p
 # Robot specification configuration
 ROBOT_SPECIFICATION = {
     "api_version": 0,
-    "model_name": "Kaia.ai Robot",
-    "manufacturer": "Kaia.ai",
+    "model_name": "Remake AI Robot",
+    "manufacturer": "Remake AI",
     "firmware_version": "1.0.0",
     "hardware_version": "v1.0",
     "sensors": [
@@ -98,7 +98,7 @@ async def spin(robot, should_exit_func):
 async def main():
     """Main function to run the robot controller"""
     print("=" * 60)
-    print("🤖 Kaia.ai Robot → Remake AI Appstore Connector")
+    print("🤖 Remake AI Robot → Remake AI Appstore Connector")
     print("=" * 60)
     print()
     print("📋 Configuration:")
@@ -187,7 +187,7 @@ async def main():
 
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("🤖 Starting Kaia.ai Robot with Remake AI Appstore")
+    print("🤖 Starting Remake AI Robot with Remake AI Appstore")
     print("="*60 + "\n")
 
     try:

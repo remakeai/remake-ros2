@@ -19,7 +19,7 @@ from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy
 from sensor_msgs.msg import LaserScan, BatteryState, CompressedImage, Image as RosImage
 from nav_msgs.msg import OccupancyGrid, MapMetaData
 from geometry_msgs.msg import Pose, Point, Quaternion, Twist, PoseWithCovarianceStamped, PoseStamped, TransformStamped
-from kaiaai_msgs.msg import WifiState
+from remakeai_msgs.msg import WifiState
 from builtin_interfaces.msg import Time
 from std_msgs.msg import String, Header
 from tf2_ros import TransformBroadcaster

@@ -308,7 +308,7 @@ def connect_robot(
     """
     Connect robot to Appstore and stay online (blocking)
 
-    This is the main entry point for `kaia connect`
+    This is the main entry point for `remake connect`
 
     Args:
         enable_ros2: If True, start ROS2 bridge to publish /cmd_vel

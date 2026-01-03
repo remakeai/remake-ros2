@@ -29,7 +29,7 @@ from std_msgs.msg import String
 from sensor_msgs.msg import LaserScan, BatteryState, Image
 from geometry_msgs.msg import Twist, PoseStamped, PoseWithCovarianceStamped
 from nav_msgs.msg import OccupancyGrid
-from kaiaai_msgs.msg import WifiState
+from remakeai_msgs.msg import WifiState
 from nav2_msgs.action import NavigateToPose
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer

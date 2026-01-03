@@ -15,7 +15,7 @@
 # limitations under the License.
 """
 Remake.ai platform Robot Client
-Connects Kaia.ai robots to the Remake.ai platform using Socket.IO
+Connects Remake AI robots to the Remake.ai platform using Socket.IO
 """
 import asyncio
 import socketio

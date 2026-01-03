@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-ROS2 Bridge Module for Kaia CLI
+ROS2 Bridge Module for Remake CLI
 ================================
-Handles ROS2 communication when --ros2 flag is used with kaia connect.
+Handles ROS2 communication when --ros2 flag is used with remake connect.
 
 This module:
 - Publishes twist commands to /cmd_vel
@@ -113,7 +113,7 @@ if ROS2_AVAILABLE:
         """Internal ROS2 node for the bridge"""
 
         def __init__(self, on_pose=None, on_battery=None):
-            super().__init__('kaia_bridge')
+            super().__init__('remake_bridge')
             self.on_pose = on_pose
             self.on_battery = on_battery
 
