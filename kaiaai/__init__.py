@@ -1,7 +1,6 @@
 __version__ = "1.0.0"
 
 from .message_callback_mixin import MessageCallbackMixin
-from .chat_mixin import ChatMixin
 from .robot_client import RobotClient
 
 # ROS2-dependent imports (optional - only available in ROS2 environment)
@@ -18,7 +17,6 @@ from .websocket_client import RobotConnection
 
 __all__ = [
     'MessageCallbackMixin',
-    'ChatMixin',
     'RobotClient',
     'RobotClientROS2',
     'AppstoreRobotClient',
