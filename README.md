@@ -11,19 +11,28 @@ ROS2 platform client for [Remake.ai](https://remake.ai) - connect your robot to 
 
 ## Quick Start
 
-### Installation
+### Installation (ROS2 Workspace)
 
 ```bash
+# Source ROS2
+source /opt/ros/jazzy/setup.bash
+
+# Create workspace (if needed)
+mkdir -p ~/ros2_ws/src
+cd ~/ros2_ws/src
+
 # Clone the repository
-git clone https://github.com/remakeai/remakeai_ros2.git
-cd remakeai_ros2
+git clone https://github.com/remakeai/remakeai_ros2.git remakeai
 
-# Create virtual environment (recommended)
-python3 -m venv .venv
-source .venv/bin/activate
+# Install dependencies
+cd ~/ros2_ws
+rosdep install --from-paths src --ignore-src -r -y
 
-# Install the package
-pip install -e .
+# Build the package
+colcon build --symlink-install
+
+# Source the workspace
+source install/setup.bash
 ```
 
 ### Authentication
@@ -227,11 +236,25 @@ remake status
 Ensure ROS2 is installed and sourced:
 
 ```bash
-source /opt/ros/humble/setup.bash
+source /opt/ros/jazzy/setup.bash
 remake connect --ros2
 ```
 
 ## Development
+
+### With ROS2
+
+```bash
+# Build with symlink for development
+cd ~/ros2_ws
+colcon build --symlink-install --packages-select remakeai
+
+# Run tests
+colcon test --packages-select remakeai
+colcon test-result --verbose
+```
+
+### Standalone (without ROS2)
 
 ```bash
 # Install in development mode
@@ -254,7 +277,7 @@ python3 -m py_compile remakeai/*.py
 
 Optional (for ROS2 bridge):
 - rclpy
-- ROS2 Humble or later
+- ROS2 Jazzy or later
 
 ## License
 
@@ -264,4 +287,3 @@ Apache-2.0
 
 - [Remake.ai Platform](https://apps.remake.ai)
 - [GitHub Repository](https://github.com/remakeai/remakeai_ros2)
-- [Documentation](https://docs.remake.ai)
