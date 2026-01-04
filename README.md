@@ -274,8 +274,6 @@ python3 -m py_compile remakeai/*.py
 - httpx >= 0.24.0
 - python-socketio[client] >= 5.0.0
 - pyyaml >= 6.0
-
-Optional (for ROS2 bridge):
 - rclpy
 - ROS2 Jazzy or later
 
@@ -285,5 +283,5 @@ Apache-2.0
 
 ## Links
 
-- [Remake.ai Platform](https://apps.remake.ai)
+- [Remake.ai Platform](https://remake.ai)
 - [GitHub Repository](https://github.com/remakeai/remakeai_ros2)
