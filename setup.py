@@ -35,7 +35,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'cli = remakeai.cli:main',
+            'remake = remakeai.cli:main',
         ],
     },
 )
