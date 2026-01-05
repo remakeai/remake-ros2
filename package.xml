@@ -4,7 +4,7 @@
   <name>remakeai</name>
   <version>0.1.0</version>
   <description>ROS2 client for Remake.ai apps platform</description>
-  <maintainer email="iliao@.ai">Ilia O.</maintainer>
+  <maintainer email="iliao@remake.ai">Ilia O.</maintainer>
   <license>Apache 2.0</license>
   <url type="website">https://remake.ai</url>
   <url type="repository">https://github.com/remakeai/remakeai_ros2</url>
