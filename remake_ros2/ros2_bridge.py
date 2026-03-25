@@ -550,7 +550,7 @@ class ROS2Bridge:
         self._running = False
         self._loop: Optional[asyncio.AbstractEventLoop] = None
 
-    def start(self, node_name: str = 'remakeai_ros2_bridge') -> bool:
+    def start(self, node_name: str = 'remake_ros2_bridge') -> bool:
         """
         Start the ROS2 bridge.
 

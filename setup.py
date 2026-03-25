@@ -1,10 +1,10 @@
 from setuptools import find_packages, setup
 
-package_name = 'remakeai'
+package_name = 'remake_ros2'
 
 setup(
     name=package_name,
-    version='0.1.0',
+    version='0.2.0',
     packages=find_packages(exclude=['test']),
     data_files=[
         ('share/ament_index/resource_index/packages',
@@ -37,7 +37,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'remake_app_bridge = remakeai.app_bridge_node:main',
+            'remake_app_bridge = remake_ros2.app_bridge_node:main',
         ],
     },
 )

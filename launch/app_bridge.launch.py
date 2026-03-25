@@ -20,9 +20,9 @@ Starts the App Bridge node that connects containerized apps
 to the ROS2 robot via Socket.IO.
 
 Usage:
-    ros2 launch remakeai app_bridge.launch.py
-    ros2 launch remakeai app_bridge.launch.py port:=9000
-    ros2 launch remakeai app_bridge.launch.py services:=/path/to/services.yaml
+    ros2 launch remake_ros2 app_bridge.launch.py
+    ros2 launch remake_ros2 app_bridge.launch.py port:=9000
+    ros2 launch remake_ros2 app_bridge.launch.py services:=/path/to/services.yaml
 """
 
 import os
@@ -34,7 +34,7 @@ from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     # Default services.yaml path
-    pkg_share = get_package_share_path('remakeai')
+    pkg_share = get_package_share_path('remake_ros2')
     default_services = os.path.join(pkg_share, 'config', 'services.yaml')
 
     return LaunchDescription([
@@ -60,7 +60,7 @@ def generate_launch_description():
         ),
         ExecuteProcess(
             cmd=[
-                'python3', '-m', 'remakeai.app_bridge_node',
+                'python3', '-m', 'remake_ros2.app_bridge_node',
                 '--host', LaunchConfiguration('host'),
                 '--port', LaunchConfiguration('port'),
                 '--services', LaunchConfiguration('services'),

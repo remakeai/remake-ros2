@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>remakeai</name>
-  <version>0.1.0</version>
-  <description>ROS2 client for Remake.ai apps platform</description>
+  <name>remake_ros2</name>
+  <version>0.2.0</version>
+  <description>ROS2 App Bridge for Remake.ai robot app platform</description>
   <maintainer email="iliao@remake.ai">Ilia O.</maintainer>
   <license>Apache 2.0</license>
   <url type="website">https://remake.ai</url>
-  <url type="repository">https://github.com/remakeai/remakeai_ros2</url>
-  <url type="bugtracker">https://github.com/remakeai/remakeai_ros2/issues</url>
+  <url type="repository">https://github.com/remakeai/remake-ros2</url>
+  <url type="bugtracker">https://github.com/remakeai/remake-ros2/issues</url>
   <author email="iliao@remake.ai">Ilia O.</author>
 
   <depend>rclpy</depend>

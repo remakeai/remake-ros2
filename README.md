@@ -1,4 +1,4 @@
-# remakeai
+# remake-ros2
 
 ROS2 App Bridge for the [Remake.ai](https://remake.ai) robot app platform. Enables containerized apps to control ROS2 robots through a standardized Socket.IO protocol.
 
@@ -37,11 +37,11 @@ source /opt/ros/jazzy/setup.bash
 
 # Build the package
 cd /ros_ws
-colcon build --packages-select remakeai
+colcon build --packages-select remake_ros2
 source install/setup.bash
 
 # Start the App Bridge
-ros2 launch remakeai app_bridge.launch.py robot_id:=my-robot
+ros2 launch remake_ros2 app_bridge.launch.py robot_id:=my-robot
 ```
 
 Apps can now connect to `http://<robot-ip>:8788` using the Remake SDK:
@@ -58,7 +58,7 @@ await client.stop()
 ## Launch Parameters
 
 ```bash
-ros2 launch remakeai app_bridge.launch.py \
+ros2 launch remake_ros2 app_bridge.launch.py \
     host:=0.0.0.0 \
     port:=8788 \
     robot_id:=my-robot \
@@ -149,8 +149,8 @@ To support a different robot, create a new `services.yaml` mapping that robot's 
 ## Package Structure
 
 ```
-remakeai/
-├── remakeai/
+remake-ros2/
+├── remake_ros2/
 │   ├── __init__.py
 │   ├── app_bridge_node.py     # Socket.IO server + protocol handling
 │   ├── ros2_bridge.py         # ROS2 ↔ App API conversion

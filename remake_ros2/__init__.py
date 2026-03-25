@@ -27,10 +27,10 @@ __version__ = "0.2.0"
 __author__ = "Remake.ai"
 
 # Public API exports
-from remakeai.api import PlatformClient, create_client
-from remakeai.ros2_bridge import ROS2Bridge, BridgeConfig, is_ros2_available
-from remakeai.service_manager import ServiceManager, ServiceState
-from remakeai.app_bridge_node import AppBridgeNode, run_app_bridge
+from remake_ros2.api import PlatformClient, create_client
+from remake_ros2.ros2_bridge import ROS2Bridge, BridgeConfig, is_ros2_available
+from remake_ros2.service_manager import ServiceManager, ServiceState
+from remake_ros2.app_bridge_node import AppBridgeNode, run_app_bridge
 
 __all__ = [
     # Version info
