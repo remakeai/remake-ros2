@@ -1,0 +1,84 @@
+# Remake Service Definitions for Kaiaai Robot
+#
+# This file maps abstract service names (used in service_cmd messages)
+# to the actual ROS2 launch files and commands for this specific robot.
+#
+# Service types:
+#   launch  - Runs `ros2 launch <package> <launch_file> [args]` as a subprocess
+#   run     - Runs `ros2 run <package> <executable> [args]` as a subprocess
+#
+# Fields:
+#   description   - Human-readable description
+#   type          - "launch" or "run"
+#   package       - ROS2 package name
+#   launch_file   - Launch file name (for type: launch)
+#   executable    - Executable name (for type: run)
+#   args          - Default arguments (key-value pairs)
+#   depends_on    - Services that must be running before this one starts
+#   conflicts_with - Services that cannot run simultaneously
+#   entitlement   - Required app entitlement to use this service
+#   stop_timeout  - Seconds to wait for graceful shutdown (default: 10)
+
+robot:
+  id: kaiaai
+  description: "Kaiaai-based robot (Maker's Pet)"
+
+services:
+  bringup:
+    description: "Bring up the physical robot (micro-ROS agent, telemetry, URDF publisher)"
+    type: launch
+    package: kaiaai_bringup
+    launch_file: physical.launch.py
+    args: {}
+    depends_on: []
+    conflicts_with: []
+    entitlement: null
+    stop_timeout: 15
+
+  navigation:
+    description: "Nav2 navigation stack with an existing map"
+    type: launch
+    package: kaiaai_bringup
+    launch_file: navigation.launch.py
+    args:
+      map: "{map_path}"
+      use_sim_time: "false"
+      slam: "False"
+    depends_on:
+      - bringup
+    conflicts_with:
+      - slam
+    entitlement: navigation
+
+  slam:
+    description: "Nav2 navigation with simultaneous mapping (SLAM)"
+    type: launch
+    package: kaiaai_bringup
+    launch_file: navigation.launch.py
+    args:
+      use_sim_time: "false"
+      slam: "True"
+    depends_on:
+      - bringup
+    conflicts_with:
+      - navigation
+    entitlement: mapping
+
+  cartographer:
+    description: "Google Cartographer SLAM (alternative to Nav2 SLAM)"
+    type: launch
+    package: kaiaai_bringup
+    launch_file: cartographer.launch.py
+    args:
+      use_sim_time: "false"
+    depends_on:
+      - bringup
+    conflicts_with:
+      - navigation
+      - slam
+    entitlement: mapping
+
+# Map storage configuration
+maps:
+  directory: "~/maps"
+  default_map: null

@@ -23,19 +23,14 @@ This package provides:
 - HTTP API client for platform REST endpoints
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "Remake.ai"
 
 # Public API exports
 from remakeai.api import PlatformClient, create_client
-from remakeai.cli_config import (
-    get_auth_token,
-    get_platform_url,
-    get_websocket_url,
-    is_authenticated,
-    get_robots,
-    get_robot,
-)
+from remakeai.ros2_bridge import ROS2Bridge, BridgeConfig, is_ros2_available
+from remakeai.service_manager import ServiceManager, ServiceState
+from remakeai.app_bridge_node import AppBridgeNode, run_app_bridge
 
 __all__ = [
     # Version info
@@ -44,11 +39,14 @@ __all__ = [
     # API client
     "PlatformClient",
     "create_client",
-    # Config utilities
-    "get_auth_token",
-    "get_platform_url",
-    "get_websocket_url",
-    "is_authenticated",
-    "get_robots",
-    "get_robot",
+    # App Bridge
+    "AppBridgeNode",
+    "run_app_bridge",
+    # ROS2 Bridge
+    "ROS2Bridge",
+    "BridgeConfig",
+    "is_ros2_available",
+    # Service Manager
+    "ServiceManager",
+    "ServiceState",
 ]
