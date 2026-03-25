@@ -14,13 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Remake.ai ROS2 Platform Client.
+Remake.ai ROS2 App Bridge.
 
 This package provides:
-- CLI commands for robot management (`remake` command)
-- WebSocket client for platform communication
-- ROS2 bridge for robot sensor/actuator integration
-- HTTP API client for platform REST endpoints
+- App Bridge node: Socket.IO server bridging apps to ROS2
+- ROS2 Bridge: converts ROS2 topics/actions to App API JSON
+- Service Manager: manages ROS2 launch subprocesses via services.yaml
+- Platform API client: REST client for Remake.ai platform
 """
 
 __version__ = "0.2.0"
@@ -36,9 +36,6 @@ __all__ = [
     # Version info
     "__version__",
     "__author__",
-    # API client
-    "PlatformClient",
-    "create_client",
     # App Bridge
     "AppBridgeNode",
     "run_app_bridge",
@@ -49,4 +46,7 @@ __all__ = [
     # Service Manager
     "ServiceManager",
     "ServiceState",
+    # Platform API client
+    "PlatformClient",
+    "create_client",
 ]

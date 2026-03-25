@@ -1,287 +1,183 @@
 # remakeai
 
-ROS2 platform client for [Remake.ai](https://remake.ai) - connect your robot to the Remake.ai platform and run third-party robot apps.
+ROS2 App Bridge for the [Remake.ai](https://remake.ai) robot app platform. Enables containerized apps to control ROS2 robots through a standardized Socket.IO protocol.
 
-## Features
+## What It Does
 
-- **CLI Tool** (`remake`) - Pair, connect, and manage robots from the command line
-- **Platform Connection** - Socket.IO client with HMAC-SHA256 authentication
-- **ROS2 Bridge** - Bridge between ROS2 topics and platform commands
-- **App Sessions** - Direct WebSocket connections to robot apps
+The App Bridge connects containerized apps to ROS2 robots:
+
+```
+App Container                    App Bridge                         ROS2
+─────────────                    ──────────                         ────
+                  Socket.IO
+ RobotClient ◄──────────────► AppBridgeNode
+                                    │
+                                    ├── ROS2Bridge ◄──► /cmd_vel, /odom, /scan, ...
+                                    │                   /navigate_to_pose (action)
+                                    │
+                                    └── ServiceManager
+                                          ├── ros2 launch ... physical.launch.py
+                                          ├── ros2 launch ... navigation.launch.py
+                                          └── ros2 launch ... navigation.launch.py slam:=True
+```
+
+**Three components:**
+
+| Component | Module | Purpose |
+|-----------|--------|---------|
+| **AppBridgeNode** | `app_bridge_node.py` | Socket.IO server implementing [ROBOT_APP_API.md](https://github.com/remakeai/architecture/blob/main/v2/ROBOT_APP_API.md) |
+| **ROS2Bridge** | `ros2_bridge.py` | Converts ROS2 topics/actions to/from App API JSON |
+| **ServiceManager** | `service_manager.py` | Starts/stops ROS2 launch files via `services.yaml` config |
 
 ## Quick Start
-
-### Installation (ROS2 Workspace)
 
 ```bash
 # Source ROS2
 source /opt/ros/jazzy/setup.bash
 
-# Create workspace (if needed)
-mkdir -p ~/ros2_ws/src
-cd ~/ros2_ws/src
-
-# Clone the repository
-git clone https://github.com/remakeai/remakeai_ros2.git remakeai
-
-# Install dependencies
-cd ~/ros2_ws
-rosdep install --from-paths src --ignore-src -r -y
-
 # Build the package
-colcon build --symlink-install
-
-# Source the workspace
+cd /ros_ws
+colcon build --packages-select remakeai
 source install/setup.bash
+
+# Start the App Bridge
+ros2 launch remakeai app_bridge.launch.py robot_id:=my-robot
 ```
 
-### Authentication
+Apps can now connect to `http://<robot-ip>:8788` using the Remake SDK:
+
+```python
+from remake_sdk.socketio import RobotClient
+
+client = RobotClient(socket_url="http://robot-ip:8788", app_id="com.example.myapp")
+await client.connect()
+await client.move(linear_x=0.3)
+await client.stop()
+```
+
+## Launch Parameters
 
 ```bash
-# Login with your platform token
-remake login
-
-# Follow the prompts to enter your CLI token from https://apps.remake.ai/tokens
+ros2 launch remakeai app_bridge.launch.py \
+    host:=0.0.0.0 \
+    port:=8788 \
+    robot_id:=my-robot \
+    services:=/path/to/services.yaml
 ```
 
-### Pair a Robot
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `host` | `0.0.0.0` | Socket.IO server bind address |
+| `port` | `8788` | Socket.IO server port |
+| `robot_id` | `remake-robot` | Robot ID sent in welcome message |
+| `services` | `<pkg>/config/services.yaml` | Robot-specific service configuration |
 
-```bash
-# Pair a robot from your account
-remake pair
+## ROS2 Topics
 
-# Select from your available robots
-```
+### Subscribed (sensor data → apps)
 
-### Connect to Platform
+| Topic | Type | App API Event |
+|-------|------|---------------|
+| `/odom` | `nav_msgs/Odometry` | `pose_data` |
+| `/scan` | `sensor_msgs/LaserScan` | `scan_data` |
+| `/battery_state` | `sensor_msgs/BatteryState` | `battery_data` |
+| `/camera/image_raw` | `sensor_msgs/Image` | `camera_data` |
+| `/imu/data` | `sensor_msgs/Imu` | `imu_data` |
+| `/map` | `nav_msgs/OccupancyGrid` | `map_data` |
+| `/diagnostics` | `diagnostic_msgs/DiagnosticArray` | `health_data` |
 
-```bash
-# Connect without ROS2 (for testing)
-remake connect
+### Published (app commands → ROS2)
 
-# Connect with ROS2 bridge enabled
-remake connect --ros2
-```
-
-## CLI Commands
-
-| Command | Description |
-|---------|-------------|
-| `remake login` | Authenticate with platform |
-| `remake logout` | Clear stored credentials |
-| `remake pair` | Pair a robot from your account |
-| `remake factory-reset` | Factory reset (wipe credentials and assets) |
-| `remake connect` | Connect robot to platform |
-| `remake status` | Show login and robot status |
-| `remake info` | Display robot capabilities |
-| `remake test` | Run self-diagnostics |
-| `remake logs` | View or upload robot logs |
-| `remake update` | Check for firmware updates |
-| `remake config` | View/modify runtime configuration |
-| `remake assets` | Manage cached app assets |
-| `remake launch` | Launch an app for testing |
-
-### Examples
-
-```bash
-# Check current status
-remake status
-
-# Run diagnostics
-remake test --verbose
-
-# View configuration
-remake config list
-
-# Set a config value
-remake config set sensor_publish_rate 20.0
-
-# Upload logs for debugging
-remake logs --upload --since 1h
-
-# Check for updates
-remake update --check
-```
-
-## Configuration
-
-### Config File
-
-Location: `~/.config/remakeai/config.yml`
-
-```yaml
-platform:
-  url: https://apps.remake.ai
-
-auth:
-  token: cli_xxx...
-  email: user@example.com
-
-robots:
-  - id: robot-abc-123
-    name: My Robot
-    secret: robot_secret_xxx...
-    device_id: '00:11:22:33:44:55'
-
-settings:
-  platform_url: https://apps.remake.ai
-  websocket_url: wss://apps.remake.ai/robot-control
-  sensor_publish_rate: 10.0
-  camera_jpeg_quality: 85
-  asset_quota_mb: 100
-  reconnect_interval: 5.0
-  log_level: info
-```
-
-### Configuration Options
-
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| `platform_url` | string | `https://apps.remake.ai` | Platform REST API URL |
-| `websocket_url` | string | `wss://apps.remake.ai/robot-control` | Platform WebSocket URL |
-| `sensor_publish_rate` | float | `10.0` | Sensor data publish rate (Hz) |
-| `camera_jpeg_quality` | int | `85` | JPEG compression quality (1-100) |
-| `asset_quota_mb` | int | `100` | Per-app asset storage quota (MB) |
-| `reconnect_interval` | float | `5.0` | Reconnection retry interval (seconds) |
-| `log_level` | string | `info` | Logging level (debug/info/warn/error) |
-
-### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `ROBOT_SECRET` | Robot authentication secret (recommended over config file) |
-| `PLATFORM_URL` | Override platform URL |
-| `ROBOT_ID` | Override robot ID |
-
-## ROS2 Integration
-
-When running with `--ros2` flag, the package bridges these topics:
-
-### Subscribed Topics (Robot → Platform)
-
-| Topic | Message Type | Description |
-|-------|-------------|-------------|
-| `/battery_state` | `sensor_msgs/BatteryState` | Battery level and status |
-| `/odom` | `nav_msgs/Odometry` | Robot pose and velocity |
-| `/scan` | `sensor_msgs/LaserScan` | LIDAR data |
-| `/camera/image_raw` | `sensor_msgs/Image` | Camera images |
-
-### Published Topics (Platform → Robot)
-
-| Topic | Message Type | Description |
-|-------|-------------|-------------|
-| `/cmd_vel` | `geometry_msgs/Twist` | Velocity commands |
+| Topic | Type | App API Command |
+|-------|------|-----------------|
+| `/cmd_vel` | `geometry_msgs/Twist` | `move_cmd`, `stop_cmd` |
 
 ### Action Clients
 
-| Action | Type | Description |
-|--------|------|-------------|
-| `/navigate_to_pose` | `nav2_msgs/NavigateToPose` | Autonomous navigation |
+| Action | Type | App API Command |
+|--------|------|-----------------|
+| `/navigate_to_pose` | `nav2_msgs/NavigateToPose` | `navigate_cmd` |
 
-## Architecture
+## Service Management
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      ROS2 Robot Firmware                         │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────────────────────────────────────────────┐    │
-│  │  remakeai Package                                        │    │
-│  │  ┌─────────────────┐  ┌─────────────────┐               │    │
-│  │  │ websocket_client│  │   ros2_bridge   │               │    │
-│  │  │ (Socket.IO)     │  │ (Topics/Actions)│               │    │
-│  │  └────────┬────────┘  └────────┬────────┘               │    │
-│  └───────────┼────────────────────┼─────────────────────────┘    │
-└──────────────┼────────────────────┼──────────────────────────────┘
-               │                    │
-               ▼                    ▼
-          Platform              /cmd_vel
-       (WebSocket/WSS)         /odom, /scan, etc.
-```
+The `ServiceManager` maps abstract `service_cmd` requests from apps to robot-specific `ros2 launch` commands, configured via `services.yaml`.
 
-## Security
+### services.yaml (Kaiaai robot example)
 
-- Credentials stored with `chmod 600` (owner read/write only)
-- HMAC-SHA256 challenge-response authentication (secrets never sent directly)
-- Robot secrets should be set via environment variable `ROBOT_SECRET`
-- TLS/WSS for all platform connections
+```yaml
+robot:
+  id: kaiaai
 
-## Troubleshooting
+services:
+  bringup:
+    type: launch
+    package: kaiaai_bringup
+    launch_file: physical.launch.py
+    depends_on: []
 
-### "Not logged in" error
+  navigation:
+    type: launch
+    package: kaiaai_bringup
+    launch_file: navigation.launch.py
+    args:
+      map: "{map_path}"
+      slam: "False"
+    depends_on: [bringup]
+    conflicts_with: [slam]
 
-```bash
-remake login
-# Enter your CLI token from https://apps.remake.ai/tokens
-```
+  slam:
+    type: launch
+    package: kaiaai_bringup
+    launch_file: navigation.launch.py
+    args:
+      slam: "True"
+    depends_on: [bringup]
+    conflicts_with: [navigation]
 
-### "No robots paired" error
-
-```bash
-remake pair
-# Select a robot from your account
+maps:
+  directory: "~/maps"
 ```
 
-### Connection issues
+**Features:**
+- Dependency resolution (starting `navigation` auto-starts `bringup`)
+- Conflict detection (`slam` and `navigation` can't run simultaneously)
+- Graceful shutdown (SIGINT → SIGTERM → SIGKILL with configurable timeout)
+- Crash monitoring with `service_event` error reporting
 
-```bash
-# Run diagnostics
-remake test --verbose
+To support a different robot, create a new `services.yaml` mapping that robot's launch files.
 
-# Check platform connectivity
-remake status
+## Package Structure
+
 ```
-
-### ROS2 bridge not working
-
-Ensure ROS2 is installed and sourced:
-
-```bash
-source /opt/ros/jazzy/setup.bash
-remake connect --ros2
-```
-
-## Development
-
-### With ROS2
-
-```bash
-# Build with symlink for development
-cd ~/ros2_ws
-colcon build --symlink-install --packages-select remakeai
-
-# Run tests
-colcon test --packages-select remakeai
-colcon test-result --verbose
-```
-
-### Standalone (without ROS2)
-
-```bash
-# Install in development mode
-pip install -e .
-
-# Run tests
-pytest
-
-# Check syntax
-python3 -m py_compile remakeai/*.py
+remakeai/
+├── remakeai/
+│   ├── __init__.py
+│   ├── app_bridge_node.py     # Socket.IO server + protocol handling
+│   ├── ros2_bridge.py         # ROS2 ↔ App API conversion
+│   ├── service_manager.py     # ros2 launch subprocess management
+│   └── api.py                 # Platform REST API client
+├── config/
+│   └── services.yaml          # Robot-specific service definitions
+├── launch/
+│   └── app_bridge.launch.py   # ROS2 launch file
+├── package.xml
+└── setup.py
 ```
 
 ## Dependencies
 
 - Python 3.10+
-- click >= 8.0.0
-- httpx >= 0.24.0
-- python-socketio[client] >= 5.0.0
+- ROS2 Jazzy (or later)
+- python-socketio >= 5.0.0
+- aiohttp >= 3.8.0
 - pyyaml >= 6.0
-- rclpy
-- ROS2 Jazzy or later
+- httpx >= 0.24.0
+
+## Related
+
+- [Remake SDK](https://github.com/remakeai/remake-sdk) (`~/remake-sdk`) - Python SDK with `RobotClient`, CLI, container runtime
+- [Architecture Docs](https://github.com/remakeai/architecture) (`~/architecture/v2/`) - Protocol specs (ROBOT_APP_API.md, API_SENSOR_DATA.md)
 
 ## License
 
 Apache-2.0
-
-## Links
-
-- [Remake.ai Platform](https://remake.ai)
-- [GitHub Repository](https://github.com/remakeai/remakeai_ros2)

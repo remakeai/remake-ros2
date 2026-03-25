@@ -15,7 +15,6 @@ setup(
     ],
     install_requires=[
         'setuptools',
-        'click>=8.0.0',
         'httpx>=0.24.0',
         'python-socketio>=5.0.0',
         'aiohttp>=3.8.0',
@@ -33,12 +32,11 @@ setup(
         'Programming Language :: Python',
         'Topic :: Software Development',
     ],
-    description=('ROS2 client for Remake.ai apps platform'),
+    description=('ROS2 App Bridge for Remake.ai robot app platform'),
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'remake = remakeai.cli:main',
             'remake_app_bridge = remakeai.app_bridge_node:main',
         ],
     },
