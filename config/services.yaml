@@ -78,6 +78,43 @@ services:
       - slam
     entitlement: mapping
 
+# Simulator definitions
+#
+# Each simulator acts as a substitute for "bringup" (physical robot).
+# When a simulator is active, all services automatically get use_sim_time:=true.
+#
+# Fields:
+#   provides       - The service this simulator substitutes for (typically "bringup")
+#   conflicts_with - Services that cannot run alongside this simulator
+#   Other fields are the same as service definitions above.
+simulators:
+  default: gazebo
+
+  gazebo:
+    description: "Gazebo Harmonic simulation"
+    type: launch
+    package: kaiaai_gazebo
+    launch_file: world.launch.py
+    provides: bringup
+    conflicts_with:
+      - bringup
+    args:
+      use_sim_time: "true"
+      robot_model: ""
+      x_pose: "-2.0"
+      y_pose: "-0.5"
+      world: "living_room.world"
+    stop_timeout: 20
+
+  # unity:
+  #   description: "Unity simulation with rich assets and animations"
+  #   type: external
+  #   provides: bringup
+  #   conflicts_with:
+  #     - bringup
+  #   args: {}
+  #   stop_timeout: 15
+
 # Map storage configuration
 maps:
   directory: "~/maps"

@@ -124,8 +124,81 @@ class AppBridgeNode:
         # Register Socket.IO handlers
         self._register_handlers()
 
+        # Register HTTP API routes (for CLI sim commands)
+        self._register_api_routes()
+
         # Running flag
         self._running = False
+
+    # =========================================================================
+    # HTTP API (for CLI commands)
+    # =========================================================================
+
+    def _register_api_routes(self):
+        """Register HTTP API routes for simulation control."""
+        self._web_app.router.add_post('/api/sim/start', self._api_sim_start)
+        self._web_app.router.add_post('/api/sim/stop', self._api_sim_stop)
+        self._web_app.router.add_get('/api/sim/status', self._api_sim_status)
+        self._web_app.router.add_get('/api/health', self._api_health)
+
+    async def _api_health(self, request: web.Request) -> web.Response:
+        """Health check endpoint."""
+        return web.json_response({'status': 'ok', 'robot_id': self.robot_id})
+
+    async def _api_sim_start(self, request: web.Request) -> web.Response:
+        """Start a simulator."""
+        if not self._service_manager:
+            return web.json_response({
+                'success': False,
+                'error': 'no_service_manager',
+                'message': 'Service manager not configured',
+            }, status=503)
+
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+
+        simulator = body.get('simulator')
+        # Collect override args from body (world, headless, etc.)
+        override_args = {}
+        if 'world' in body:
+            override_args['world'] = body['world']
+        if 'headless' in body:
+            # For Gazebo, headless means server-only (no GUI)
+            if body['headless']:
+                override_args['gz_args_extra'] = '-s'
+
+        result = await self._service_manager.start_simulator(
+            name=simulator,
+            args=override_args if override_args else None,
+        )
+
+        status_code = 200 if result.get('success') else 400
+        return web.json_response(result, status=status_code)
+
+    async def _api_sim_stop(self, request: web.Request) -> web.Response:
+        """Stop the active simulator."""
+        if not self._service_manager:
+            return web.json_response({
+                'success': False,
+                'error': 'no_service_manager',
+                'message': 'Service manager not configured',
+            }, status=503)
+
+        result = await self._service_manager.stop_simulator()
+        return web.json_response(result)
+
+    async def _api_sim_status(self, request: web.Request) -> web.Response:
+        """Get simulation status."""
+        if not self._service_manager:
+            return web.json_response({
+                'active': False,
+                'message': 'Service manager not configured',
+            })
+
+        result = self._service_manager.get_sim_status()
+        return web.json_response(result)
 
     # =========================================================================
     # Startup / Shutdown
@@ -174,6 +247,11 @@ class AppBridgeNode:
                 f"  Available services: "
                 f"{', '.join(self._service_manager.available_services)}"
             )
+            if self._service_manager.available_simulators:
+                logger.info(
+                    f"  Available simulators: "
+                    f"{', '.join(self._service_manager.available_simulators)}"
+                )
         if self._bridge:
             logger.info("  ROS2 bridge: active")
         else:
@@ -405,6 +483,15 @@ class AppBridgeNode:
             "active_services": [],
             "available_maps": available_maps,
         }
+
+        # Include simulation state so apps know if they're in sim
+        if self._service_manager:
+            sim_status = self._service_manager.get_sim_status()
+            welcome["simulation"] = {
+                "active": sim_status.get("active", False),
+                "simulator": sim_status.get("simulator"),
+                "world": sim_status.get("world"),
+            }
 
         if last_known_pose:
             welcome["last_known_pose"] = last_known_pose

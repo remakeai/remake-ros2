@@ -60,6 +60,7 @@ class ServiceDefinition:
     conflicts_with: List[str] = field(default_factory=list)
     entitlement: Optional[str] = None
     stop_timeout: int = 10
+    provides: Optional[str] = None  # Virtual service this substitutes for
 
 
 @dataclass
@@ -101,9 +102,17 @@ class ServiceManager:
         self._maps_config: Dict[str, Any] = {}
         self._robot_config: Dict[str, Any] = {}
 
+        # Simulator definitions (from simulators section)
+        self._simulator_definitions: Dict[str, ServiceDefinition] = {}
+        self._default_simulator: Optional[str] = None
+
         # Runtime state
         self._instances: Dict[str, ServiceInstance] = {}
         self._lock = asyncio.Lock()
+
+        # Simulation state
+        self._active_simulator: Optional[str] = None
+        self._sim_instance: Optional[ServiceInstance] = None
 
         # Load config
         self._load_config()
@@ -141,8 +150,29 @@ class ServiceManager:
                 definition=self._definitions[name]
             )
 
+        # Load simulator definitions
+        simulators = config.get('simulators', {})
+        self._default_simulator = simulators.pop('default', None)
+        for name, sim in simulators.items():
+            if not isinstance(sim, dict):
+                continue
+            self._simulator_definitions[name] = ServiceDefinition(
+                name=name,
+                description=sim.get('description', ''),
+                type=sim.get('type', 'launch'),
+                package=sim.get('package', ''),
+                launch_file=sim.get('launch_file'),
+                executable=sim.get('executable'),
+                args=sim.get('args', {}),
+                depends_on=[],
+                conflicts_with=sim.get('conflicts_with', []),
+                provides=sim.get('provides'),
+                stop_timeout=sim.get('stop_timeout', 15),
+            )
+
         logger.info(
             f"Loaded {len(self._definitions)} service definitions "
+            f"and {len(self._simulator_definitions)} simulator definitions "
             f"for robot '{self._robot_config.get('id', 'unknown')}'"
         )
 
@@ -179,6 +209,325 @@ class ServiceManager:
         if not inst:
             return False
         return inst.state in (ServiceState.STARTING, ServiceState.READY)
+
+    # =========================================================================
+    # Simulation
+    # =========================================================================
+
+    @property
+    def available_simulators(self) -> List[str]:
+        """Get list of available simulator names."""
+        return list(self._simulator_definitions.keys())
+
+    @property
+    def is_sim_active(self) -> bool:
+        """Check if a simulator is currently running."""
+        if not self._sim_instance:
+            return False
+        return self._sim_instance.state in (
+            ServiceState.STARTING, ServiceState.READY
+        )
+
+    def get_sim_status(self) -> Dict[str, Any]:
+        """Get current simulation status."""
+        if not self._active_simulator or not self._sim_instance:
+            return {
+                'active': False,
+                'available_simulators': self.available_simulators,
+                'default_simulator': self._default_simulator,
+            }
+
+        defn = self._simulator_definitions[self._active_simulator]
+        result: Dict[str, Any] = {
+            'active': True,
+            'simulator': self._active_simulator,
+            'state': self._sim_instance.state.value,
+            'description': defn.description,
+            'world': self._sim_instance.runtime_args.get(
+                'world', defn.args.get('world', '')
+            ),
+            'available_simulators': self.available_simulators,
+            'default_simulator': self._default_simulator,
+        }
+        if self._sim_instance.started_at:
+            result['uptime_s'] = int(time.time() - self._sim_instance.started_at)
+        if self._sim_instance.error_message:
+            result['error'] = self._sim_instance.error_message
+        return result
+
+    async def start_simulator(
+        self,
+        name: Optional[str] = None,
+        args: Optional[Dict[str, str]] = None,
+    ) -> Dict[str, Any]:
+        """Start a simulator.
+
+        Args:
+            name: Simulator name (uses default if not specified).
+            args: Override args (e.g. world, headless).
+
+        Returns:
+            Response dict with success/error.
+        """
+        async with self._lock:
+            # Resolve simulator name
+            sim_name = name or self._default_simulator
+            if not sim_name or sim_name not in self._simulator_definitions:
+                available = ', '.join(self.available_simulators) or 'none'
+                return {
+                    'success': False,
+                    'error': 'simulator_not_available',
+                    'message': (
+                        f"Unknown simulator: '{sim_name}'. "
+                        f"Available: {available}"
+                    ),
+                }
+
+            # Check if already running
+            if self.is_sim_active:
+                if self._active_simulator == sim_name:
+                    return {
+                        'success': True,
+                        'message': f"Simulator '{sim_name}' is already running",
+                        'simulator': sim_name,
+                    }
+                return {
+                    'success': False,
+                    'error': 'simulator_conflict',
+                    'message': (
+                        f"Simulator '{self._active_simulator}' is already running. "
+                        f"Stop it first."
+                    ),
+                }
+
+            sim_defn = self._simulator_definitions[sim_name]
+
+            # Check conflicts with running services (e.g. bringup)
+            for conflict in sim_defn.conflicts_with:
+                if self.is_running(conflict):
+                    return {
+                        'success': False,
+                        'error': 'service_conflict',
+                        'message': (
+                            f"Cannot start simulator '{sim_name}': "
+                            f"service '{conflict}' is running. Stop it first."
+                        ),
+                    }
+
+            # Create sim instance
+            self._active_simulator = sim_name
+            self._sim_instance = ServiceInstance(definition=sim_defn)
+
+            # Merge args
+            runtime_args = dict(sim_defn.args)
+            if args:
+                runtime_args.update(args)
+            self._sim_instance.runtime_args = runtime_args
+            self._sim_instance.requested_by.add('sim')
+
+            # Start the subprocess (reuse existing infrastructure)
+            success = await self._start_sim_process()
+            if not success:
+                error_msg = self._sim_instance.error_message or 'Unknown error'
+                self._active_simulator = None
+                self._sim_instance = None
+                return {
+                    'success': False,
+                    'error': 'simulator_start_failed',
+                    'message': f"Failed to start simulator '{sim_name}': {error_msg}",
+                }
+
+            world = runtime_args.get('world', '')
+            logger.info(f"Simulator '{sim_name}' started (world: {world})")
+            return {
+                'success': True,
+                'simulator': sim_name,
+                'world': world,
+            }
+
+    async def stop_simulator(self) -> Dict[str, Any]:
+        """Stop the active simulator and all dependent services."""
+        async with self._lock:
+            if not self.is_sim_active:
+                return {
+                    'success': True,
+                    'message': 'No simulator is running',
+                }
+
+            sim_name = self._active_simulator
+            sim_defn = self._simulator_definitions[sim_name]
+
+            # First stop all services that depend on what the sim provides
+            if sim_defn.provides:
+                dependents = [
+                    name for name, inst in self._instances.items()
+                    if inst.state in (ServiceState.STARTING, ServiceState.READY)
+                    and sim_defn.provides in inst.definition.depends_on
+                ]
+                if dependents:
+                    # Use stop order to handle transitive dependencies
+                    stop_order = self._resolve_stop_order(dependents)
+                    for name in stop_order:
+                        await self._stop_service(name)
+                    logger.info(
+                        f"Stopped dependent services before simulator: "
+                        f"{', '.join(stop_order)}"
+                    )
+
+            # Stop the simulator process
+            await self._stop_sim_process()
+
+            stopped_name = sim_name
+            self._active_simulator = None
+            self._sim_instance = None
+
+            logger.info(f"Simulator '{stopped_name}' stopped")
+            return {
+                'success': True,
+                'simulator': stopped_name,
+            }
+
+    async def _start_sim_process(self) -> bool:
+        """Start the simulator subprocess."""
+        inst = self._sim_instance
+        defn = inst.definition
+
+        inst.state = ServiceState.STARTING
+        inst.error_message = None
+        self._emit_event('starting', {
+            f'sim:{self._active_simulator}': {'state': 'starting'}
+        })
+
+        cmd = self._build_command(defn, inst.runtime_args)
+        if not cmd:
+            inst.state = ServiceState.ERROR
+            inst.error_message = "Cannot build command for simulator"
+            return False
+
+        logger.info(f"Starting simulator: {' '.join(cmd)}")
+
+        try:
+            inst.process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                preexec_fn=os.setsid,
+            )
+            inst.started_at = time.time()
+
+            # Monitor in background
+            asyncio.get_event_loop().create_task(
+                self._monitor_sim()
+            )
+            return True
+
+        except Exception as e:
+            inst.state = ServiceState.ERROR
+            inst.error_message = str(e)
+            logger.exception(f"Failed to start simulator")
+            return False
+
+    async def _stop_sim_process(self):
+        """Stop the simulator subprocess."""
+        inst = self._sim_instance
+        if not inst or not inst.process or inst.process.poll() is not None:
+            if inst:
+                inst.state = ServiceState.STOPPED
+                inst.process = None
+            return
+
+        sim_name = self._active_simulator
+        inst.state = ServiceState.STOPPING
+        self._emit_event('stopping', {
+            f'sim:{sim_name}': {'state': 'stopping'}
+        })
+
+        logger.info(f"Stopping simulator '{sim_name}' (PID {inst.process.pid})")
+
+        try:
+            pgid = os.getpgid(inst.process.pid)
+            os.killpg(pgid, signal.SIGINT)
+
+            timeout = inst.definition.stop_timeout
+            try:
+                await asyncio.get_event_loop().run_in_executor(
+                    None, inst.process.wait, timeout
+                )
+            except subprocess.TimeoutExpired:
+                logger.warning(f"Simulator did not stop within {timeout}s, sending SIGTERM")
+                os.killpg(pgid, signal.SIGTERM)
+                try:
+                    await asyncio.get_event_loop().run_in_executor(
+                        None, inst.process.wait, 5
+                    )
+                except subprocess.TimeoutExpired:
+                    logger.warning("Simulator force-killing")
+                    os.killpg(pgid, signal.SIGKILL)
+                    inst.process.wait(timeout=5)
+
+        except ProcessLookupError:
+            pass
+        except Exception as e:
+            logger.error(f"Error stopping simulator: {e}")
+
+        inst.state = ServiceState.STOPPED
+        inst.process = None
+        inst.started_at = None
+        self._emit_event('stopped', {
+            f'sim:{sim_name}': {'state': 'stopped'}
+        })
+
+    async def _monitor_sim(self):
+        """Monitor simulator subprocess for startup and crashes."""
+        inst = self._sim_instance
+        if not inst or not inst.process:
+            return
+
+        # Gazebo takes longer to start than typical services
+        await asyncio.sleep(5.0)
+
+        if not inst.process or inst.process.poll() is not None:
+            exit_code = inst.process.returncode if inst.process else -1
+            inst.state = ServiceState.ERROR
+            inst.error_message = (
+                f"Simulator exited during startup with code {exit_code}"
+            )
+            self._emit_event('error', {
+                f'sim:{self._active_simulator}': {
+                    'state': 'error',
+                    'message': inst.error_message,
+                }
+            })
+            logger.error(f"Simulator failed to start: {inst.error_message}")
+            return
+
+        inst.state = ServiceState.READY
+        self._emit_event('ready', {
+            f'sim:{self._active_simulator}': {'state': 'ready'}
+        })
+        logger.info(
+            f"Simulator '{self._active_simulator}' is ready "
+            f"(PID {inst.process.pid})"
+        )
+
+        # Continue monitoring for crashes
+        while inst.state == ServiceState.READY:
+            await asyncio.sleep(2.0)
+            if inst.process and inst.process.poll() is not None:
+                exit_code = inst.process.returncode
+                if inst.state == ServiceState.READY:
+                    inst.state = ServiceState.ERROR
+                    inst.error_message = (
+                        f"Simulator exited unexpectedly with code {exit_code}"
+                    )
+                    self._emit_event('error', {
+                        f'sim:{self._active_simulator}': {
+                            'state': 'error',
+                            'message': inst.error_message,
+                        }
+                    })
+                    logger.error(f"Simulator crashed (exit code {exit_code})")
+                break
 
     # =========================================================================
     # Service Lifecycle
@@ -306,7 +655,7 @@ class ServiceManager:
             }
 
     async def shutdown(self):
-        """Stop all running services (during node shutdown)."""
+        """Stop all running services and simulator (during node shutdown)."""
         async with self._lock:
             running = [
                 name for name, inst in self._instances.items()
@@ -316,7 +665,14 @@ class ServiceManager:
             stop_order = self._resolve_stop_order(running)
             for name in stop_order:
                 await self._stop_service(name)
-            logger.info("All services stopped")
+
+            # Stop simulator if active
+            if self.is_sim_active:
+                await self._stop_sim_process()
+                self._active_simulator = None
+                self._sim_instance = None
+
+            logger.info("All services and simulator stopped")
 
     # =========================================================================
     # Internal: Subprocess Management
@@ -502,6 +858,11 @@ class ServiceManager:
         runtime_args: Dict[str, str],
     ) -> Optional[List[str]]:
         """Build the shell command for a service."""
+        # When simulation is active, override use_sim_time for all services
+        if self.is_sim_active and 'use_sim_time' in runtime_args:
+            runtime_args = dict(runtime_args)  # Don't mutate the original
+            runtime_args['use_sim_time'] = 'true'
+
         if defn.type == 'launch':
             if not defn.launch_file:
                 return None
@@ -536,13 +897,25 @@ class ServiceManager:
         """
         Resolve dependencies and return topological start order.
 
+        When a simulator is active and provides a service (e.g. bringup),
+        that dependency is considered satisfied and skipped.
+
         Raises ValueError on circular dependencies or missing deps.
         """
         resolved = []
-        seen = set()
+
+        # Determine which virtual services are provided by the active simulator
+        provided_by_sim: Set[str] = set()
+        if self.is_sim_active and self._active_simulator:
+            sim_defn = self._simulator_definitions[self._active_simulator]
+            if sim_defn.provides:
+                provided_by_sim.add(sim_defn.provides)
 
         def visit(name: str, path: Set[str]):
             if name in resolved:
+                return
+            if name in provided_by_sim and self.is_running(name) is False:
+                # This dependency is provided by the active simulator; skip it
                 return
             if name in path:
                 raise ValueError(
@@ -550,10 +923,15 @@ class ServiceManager:
                     f"{' -> '.join(path)} -> {name}"
                 )
             if name not in self._definitions:
+                # Check if this dep is provided by the active simulator
+                if name in provided_by_sim:
+                    return
                 raise ValueError(f"Unknown dependency: {name}")
 
             path.add(name)
             for dep in self._definitions[name].depends_on:
+                if dep in provided_by_sim:
+                    continue  # Satisfied by simulator
                 visit(dep, path)
             path.discard(name)
 
@@ -594,6 +972,7 @@ class ServiceManager:
     def _check_conflicts(self, services: List[str]) -> Optional[str]:
         """
         Check for conflicts between requested services and running services.
+        Also checks against the active simulator.
 
         Returns error message string if conflict found, None otherwise.
         """
@@ -622,6 +1001,15 @@ class ServiceManager:
                     return (
                         f"Service '{name}' conflicts with "
                         f"already-running service '{other_name}'"
+                    )
+
+            # Check against active simulator
+            if self.is_sim_active and self._active_simulator:
+                sim_defn = self._simulator_definitions[self._active_simulator]
+                if name in sim_defn.conflicts_with:
+                    return (
+                        f"Service '{name}' conflicts with "
+                        f"active simulator '{self._active_simulator}'"
                     )
 
         return None
