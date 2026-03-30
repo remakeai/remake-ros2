@@ -98,12 +98,7 @@ simulators:
     provides: bringup
     conflicts_with:
       - bringup
-    args:
-      use_sim_time: "true"
-      robot_model: ""
-      x_pose: "-2.0"
-      y_pose: "-0.5"
-      world: "living_room.world"
+    args: {}
     stop_timeout: 20
 
   # unity:

@@ -670,14 +670,29 @@ class ROS2Bridge:
             return
 
         cmd_id = data.get('cmd_id')
-        linear = data.get('linear', {})
-        angular = data.get('angular', {})
         obstacle_policy = data.get('obstacle_policy', 'stop_before_contact')
 
-        linear_x = float(linear.get('x', 0.0))
-        angular_z = float(angular.get('z', 0.0))
-        linear_delta = linear.get('delta')
-        angular_delta = angular.get('delta')
+        # Accept both nested and simplified flat formats per ROBOT_APP_API.md
+        linear = data.get('linear', {})
+        angular = data.get('angular', {})
+        if isinstance(linear, dict):
+            linear_x = float(linear.get('x', 0.0))
+            linear_delta = linear.get('delta')
+        else:
+            linear_x = float(linear)
+            linear_delta = None
+        if isinstance(angular, dict):
+            angular_z = float(angular.get('z', 0.0))
+            angular_delta = angular.get('delta')
+        else:
+            angular_z = float(angular)
+            angular_delta = None
+
+        # Simplified flat format: linear_x, angular_z at top level
+        if 'linear_x' in data:
+            linear_x = float(data['linear_x'])
+        if 'angular_z' in data:
+            angular_z = float(data['angular_z'])
 
         # Apply velocity limits
         linear_x = max(-self.config.max_linear_velocity,
